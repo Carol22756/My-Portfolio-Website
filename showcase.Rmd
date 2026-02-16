@@ -1,7 +1,7 @@
 ---
 title: "My Showcase"
 description: |
-  "My portfolio of selected data analysis projects using R."
+  My portfolio of selected data analysis projects using R.
 ---
 
 ```{r setup, include=FALSE}
