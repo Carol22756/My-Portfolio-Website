@@ -2,7 +2,7 @@ name: "gv300 portfolio website"
 title: "My Portfolio Website"
 description: |
   My Website
-output_dir: "_site"
+
 navbar:
   right:
     - text: "Home"
@@ -11,4 +11,4 @@ navbar:
       href: aboutme.html
     - text: "Showcase"
       href: showcase.html  
-output: distill::distill_article
+output_dir: "."
