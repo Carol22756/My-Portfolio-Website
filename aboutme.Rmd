@@ -1,0 +1,19 @@
+---
+title: "About Me"
+
+links:
+  - label: GitHub
+    url: "https://github.com/Carol22756/GV300-Portfolio"
+  - label: Email
+    url: "mailto:cp22756@essex.ac.uk"
+output:
+  postcards::jolla
+---
+
+Hi! My name is Carolina Padrão. I am an undergraduate student majoring in Political Science and International Relations, with a minor in Quantitative Political Analysis.
+
+I created this website to present selected work from my final year assignments, showcasing my analytical and data visualisation skills in R. 
+
+Enjoy! 🙂🙌
+
+

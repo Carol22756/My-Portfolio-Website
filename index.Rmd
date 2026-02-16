@@ -1,0 +1,35 @@
+---
+title: "My Portfolio Website"
+description: |
+  Carolina Padrão, BSc Political Science & International Relations
+site: distill::distill_website
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+
+## Welcome 
+This website showcases my quantitative work using R, including statistical analysis and data visualisation from the GV300 final year module. 
+
+
+Thank you for visiting and I hope you enjoy it! 😊
+
+
+
+
+View my showcase of recent projects here: 
+
+[GV300 Showcase](showcase.html)
+
+
+
+View my personal information page here: 
+  
+[About Me](aboutme.html)
+
+
+
+

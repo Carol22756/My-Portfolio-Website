@@ -1,0 +1,330 @@
+---
+title: "My Showcase"
+description: |
+  "My portfolio of selected data analysis projects using R."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message = FALSE, warning = FALSE)
+```
+
+## Introduction 
+**In this page, I present highlights from three data analysis projects completed during my final undergraduate year. Each project demonstrates my ability to clean and manipulate data, create insightful visualisations, and apply statistical models to answer real-world questions. Together, these examples highlight both my technical capabilities and my ability to communicate data-driven insights clearly.**
+
+```{r}
+
+library(tidyverse)
+library(ggplot2)
+library(haven)
+library(ggiraph)
+library(margins)
+library(scales)
+library(patchwork)
+library(stringr)
+library(readr)
+library(curl)
+
+```
+
+
+
+### Project 1: Visualisations  
+
+This project focused on data visualisations using the dataset from the National Longitudinal Survey of Youth and used in Gelman and Hill (2007), containing  The data 434 observations measured on five variables. 
+
+For this project, I created an interactive plot, the corresponding code chuck is shown below, to examine the relationship between a child's test score, the mother’s IQ, and family advantage, a new category I constructed from the raw data, to illustrate the impact that inherited privilege and merit have on a child’s intelligence.
+
+```{r}
+kidiq <- haven::read_dta("data/kidiq.dta")
+
+
+kidiq <- kidiq %>%
+  mutate(
+    work_status = case_when(
+      mom_work == 1 ~ "Not working",
+      mom_work == 2 ~ "Part-time",
+      mom_work == 3 ~ "Full-time",
+      mom_work == 4 ~ "Full-time+"))
+
+kidiq <- kidiq %>%
+  mutate( family_advantage = case_when(
+      mom_hs == 0 & mom_work <= 2 ~ "Low advantage",
+      mom_hs == 0 & mom_work > 2 ~ "Mixed advantage",
+      mom_hs == 1 & mom_work <= 2 ~ "Mixed advantage", 
+      mom_hs == 1 & mom_work > 2 ~ "High advantage"))
+
+
+values <- c("High advantage" = "#E0218A",
+            "Mixed advantage" = "#FFDB58",
+            "Low advantage" = "#4292C6"
+)
+
+averages <- kidiq %>%
+  group_by(family_advantage) %>%
+  summarise(
+    mean_mom_iq = mean(mom_iq, na.rm = TRUE),
+    mean_kid_score = mean(kid_score, na.rm = TRUE)
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r interactive plot, echo=TRUE}
+
+my_plot4 <- kidiq %>%
+  ggplot(aes(x = mom_iq, y = kid_score, colour = family_advantage,
+             group = family_advantage,
+             tooltip = family_advantage,
+             data_id = family_advantage)) +
+  geom_point(alpha = 0.3) + 
+  geom_smooth_interactive(se = FALSE) +
+  labs(
+    title = "The Myth of Meritocracy",
+    subtitle = "Is merit or birth right privilege the most prevalent determinant of a child's success?",
+    x = "Mother's IQ",
+    y = "Child's Test Score",
+    colour = "Family Advantage",
+    caption = "Data: Test scores and mother's characteristics") +
+  theme_minimal() + 
+  theme(legend.position="right") + 
+  scale_colour_manual(values = values)
+
+girafe(ggobj = my_plot4,
+       options = list(
+         opts_hover(css = "stroke-width:3;"),
+         opts_hover_inv(css = "opacity:0.1;"),  
+         opts_tooltip(opacity = .9)
+       ))
+
+```
+
+
+
+
+
+
+
+
+
+
+### Project 2: Understanding Electoral Participation in the UK
+
+For this project the tasks were centred on understanding real cases of data analytics in the field of political science.   
+
+
+```{r}
+uk_csv <- "https://electionresults.parliament.uk/general-elections/6/candidacies.csv"
+uk_raw <- readr::read_csv(uk_csv, show_col_types = FALSE)
+names(uk_raw) <- names(uk_raw) %>% tolower() %>% str_replace_all("\\s+", "_")
+
+uk1 <- uk_raw %>%
+  filter(!`election_is_by-election`)
+
+uk2 <- uk1 %>%
+  select(
+    constituency = constituency_name,
+    country      = country_name,
+    valid_votes  = candidate_vote_count,
+    electorate   = electorate
+  )
+
+uk3 <- uk2 %>%
+  group_by(country, constituency) %>%
+  summarise(
+    valid_votes = sum(valid_votes, na.rm = TRUE),
+    electorate  = max(electorate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+uk <- uk3 %>%
+  mutate(turnout_registered = 100 * valid_votes / electorate) %>%
+  filter(is.finite(turnout_registered), electorate > 0)
+
+```
+
+
+
+
+
+The plot I created, seen below, categorises constituencies by voter turnout and compares them across the countries of the UK, helping to identify areas of high or low engagement. Here I demonstrate my ability to transfer these technical skills to real-life applications, to help guide policymakers, political campaigns, and researchers in understanding participation patterns. 
+
+
+
+
+
+```{r}
+
+turnout_categories <- uk %>%
+  mutate(
+    category = case_when(
+      turnout_registered < 55 ~ "Low",
+      turnout_registered < 65 ~ "Medium",
+      turnout_registered < 75 ~ "High",
+      TRUE ~ "Very High"
+    ),
+    # Make it a factor so it plots in order
+    category = factor(category, 
+                     levels = c("Low", "Medium", "High", "Very High"))
+  )
+
+
+category_counts <- turnout_categories %>%
+  group_by(category, country) %>%
+  summarise(count = n(), .groups = "drop")
+
+
+
+ggplot(category_counts, aes(x = category, y = count, fill = country)) +
+  geom_col(position = "dodge") +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = "Distribution of Constituencies by Turnout Category",
+    subtitle = "Most constituencies fall in the 'medium' turnout category",
+    x = "Turnout Category",
+    y = "Number of Constituencies",
+    fill = "Country"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    legend.position = "bottom"
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+### Project 3: A/B Testing, Regressions, Linears and Average Treatment Effects in Political Communications 
+
+For this project, I created a simulated dataset to conduct an A/B test run for a fictitious **political party** delivering messages on its official website. The goal was to increase the probability that visitors **sign up as supporters**, comparing the standard homepage (control) with an issue-focused homepage highlighting a hot-button issue.
+
+```{r}
+
+set.seed(2024)
+
+n <- 1500 
+treatment <- rbinom(n = n, size = 1, prob = 0.5) 
+p_control <- 0.12
+p_treated <- 0.17
+
+Y0 <- rbinom(n = n, size = 1, prob = p_control) 
+Y1 <- rbinom(n = n, size = 1, prob = p_treated) 
+
+afford <- ifelse(treatment == 1, Y1, Y0)
+
+party_ab <- data.frame(
+  visitor_id     = 1:n,
+  treatment      = treatment,
+  support_signup = afford
+)
+```
+
+
+
+Here, I use the data created to run regressions estimating the probability that a visitor signs up as a party supporter based on whether they saw the treatment or control homepage. I used the model to predict probabilities under both the control and treatment conditions and calculated the Average Treatment Effect (ATE) to quantify the impact. This demonstrates my ability to simulate experimental data, apply logit models, interpret coefficients, and translate statistical results into meaningful real-world insights.
+
+```{r model, echo=TRUE}
+
+logit_model <- glm(support_signup ~ treatment, data = party_ab, family = binomial(link = "logit"))
+
+
+p_hat_control <- predict( 
+  logit_model,
+  newdata = data.frame(treatment = 0),
+  type = "response")
+
+
+p_hat_treated <- predict(
+  logit_model,
+  newdata = data.frame(treatment = 1),
+  type = "response")
+
+
+ate_logit <- p_hat_treated - p_hat_control
+
+```
+
+
+Below, I created a plot to show the effect of the treatment homepage on signup probability for three age groups (25, 40, and 60).
+
+```{r}
+party_ab$age <- round(pmin(pmax(rnorm(nrow(party_ab), mean = 40, sd = 12), 18), 75)) 
+# High political interest: 1 = high interest, 0 = low interest (about 40% high)
+party_ab$high_interest <- rbinom(nrow(party_ab), size = 1, prob = 0.4)
+
+head(party_ab[, c("visitor_id", "treatment", "support_signup", "age", "high_interest")])
+
+
+lm_het_interest <- lm(support_signup ~ treatment * high_interest, data = party_ab
+)
+
+
+
+lm_treat_age <- lm(support_signup ~ treatment * party_ab$age, data = party_ab
+)
+
+
+party_ab$age <- round(pmin(pmax(rnorm(nrow(party_ab), mean = 40, sd = 12), 18), 75)) 
+
+age <- party_ab$age
+
+# and now run the regression again 
+lm_treat_age <- lm(support_signup ~ treatment * age, data = party_ab
+)
+
+
+# now I will run the margins 
+
+age_effects <- margins(lm_treat_age, 
+                       variables = "treatment",
+                       at = list(age = c(25, 40, 60)))
+
+
+me_age_df <- as.data.frame(summary(age_effects))
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+ggplot(me_age_df, aes(x = factor(age), y = AME)) +
+  geom_point(size = 3, color = 'navy') +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, linewidth = 1, color = 'navy') +
+  geom_hline(yintercept = 0, linetype = 'dashed', color = 'hotpink', linewidth = 1) +
+  labs(
+    title = 'Effect of Treatment on Signup by Age',
+    subtitle = 'Estimated effect of the alternative homepage at ages 25, 40, and 60',
+    x = 'Age',
+    y = 'Marginal Effect'
+  ) + 
+  theme_minimal()
+```
+
+
+
+
+
+
+
