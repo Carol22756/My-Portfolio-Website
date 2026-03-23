@@ -23,6 +23,11 @@ library(patchwork)
 library(stringr)
 library(readr)
 library(curl)
+library(car)
+library(dplyr)
+library(quanteda)
+library(readtext)
+library(quanteda.textmodels)
 
 ```
 
@@ -324,6 +329,115 @@ ggplot(me_age_df, aes(x = factor(age), y = AME)) +
 
 
 
+
+
+### Project 4: Text Analysis and Machine Learning: Presidential Consession Speeches
+
+#### In this project I analysed data from concession speeches given by the losing American presidential candidates subsequent to their losses.  
+
+
+#### Naive Bayes with Quanteda
+
+
+```{r}
+speeches <- readtext("/Users/carolinapadrao/Desktop/Concession Speeches/*.txt")
+
+#astrix means take everything
+speeches
+speeches_corpus <- corpus(speeches) # Corpus collection of documents
+speeches_corpus
+
+as.character(speeches_corpus[4]) # HILLARY CLINTON
+
+typeof(speeches_corpus)
+
+summary(speeches_corpus) # overview information 
+
+nms <-names(speeches_corpus) #Get Filenames from corpus object
+nms
+speeches_corpus$Dates  <- paste(as.numeric(gsub('[^[:digit:]]','', names(speeches_corpus)))) # Get dates from file object
+speeches_corpus$Party <- str_sub(nms, start= -5, -5) # Get Party ID from file object, fifth from end
+speeches_corpus$PNames <- str_sub(nms, end = -12) #Get Name from file object
+summary(speeches_corpus)
+```
+
+
+
+
+I want to run predictive models in the future so using quanteda, I can easily transform the corpus from the document level into the paragraph level and keep the doc variables 
+
+```{r}
+speeches_paragraph <- corpus_reshape(speeches_corpus, to = "paragraphs", use_docvars = TRUE) # Can also change to sentences
+summary(speeches_paragraph)
+
+table(speeches_paragraph$Party) # Check for Balance in Party Labels 
+#Dems 157
+#Reps  180 # Slightly more Republicans
+prop.d <- 157/337
+prop.r <- 1-prop.d
+prop.d 
+prop.r 
+```
+
+
+```{r}
+speech_tokens <- tokens(speeches_paragraph, remove_punct = TRUE, remove_symbols = TRUE, split_hyphens = TRUE, remove_numbers = TRUE) #turn them into individual words and punctuation
+speech_tokens #As we can see here, we now have a list of words
+speeches_clean <- tokens_wordstem(speech_tokens) # stem the words getting rid of endings
+speeches_clean <- tokens_remove(speeches_clean, pattern = c("applpaus", "applause")) #misspelling
+speeches_clean <- tokens_select(speeches_clean, c("*st", "*th", "*rd"), selection = "remove") # get rid of special endings like 43rd
+```
+
+```{r}
+speeches_clean <- dfm(speeches_clean)
+
+speeches_clean <- dfm_remove(speeches_clean,
+                      stopwords("english"))
+
+speeches_clean <- speeches_clean[, order(featnames(speeches_clean))]
+speeches_clean
+```
+
+#### Running Naive Bayes model
+
+Here I am taking a straight 80/20 split 
+
+```{r}
+Concession_dfm_train <- speeches_clean[1:268, ] #80% of total observations
+Concession_dfm_test <- speeches_clean[269:337, ] #20% of total observations
+Concession_train_labels <- speeches_paragraph$Party[1:268]
+Concession_test_labels <- speeches_paragraph$Party[269:337]
+Concession_dfm_train
+Concession_train_labels[1:10]
+```
+
+
+
+```{r}
+nb_model <- textmodel_nb(Concession_dfm_train, docvars(Concession_dfm_train, "Party"))
+summary(nb_model)
+```
+
+
+```{r}
+dfmat_matched <- dfm_match(Concession_dfm_test, features = featnames(Concession_dfm_train)) #forcing keeping only features
+actual_class <- dfmat_matched$Party
+predicted_class <- predict(nb_model, newdata = dfmat_matched)
+```
+
+### Evaluation of model output 
+
+
+top left: true positive
+bottom left: false negative
+
+top right: false negative
+bottom right: true negative
+
+```{r}
+tab_class <- table(predicted_class, actual_class)
+tab_class
+```
 
 
 

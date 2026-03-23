@@ -3,7 +3,7 @@ title: "About Me"
 
 links:
   - label: GitHub
-    url: "https://github.com/Carol22756/GV300-Portfolio"
+    url: "https://github.com/Carol22756/My-Portfolio-Website.git"
   - label: Email
     url: "mailto:cp22756@essex.ac.uk"
 output:
