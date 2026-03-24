@@ -2,6 +2,9 @@
 title: "My Showcase"
 description: |
   My portfolio of selected data analysis projects using R.
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
