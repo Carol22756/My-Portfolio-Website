@@ -28,6 +28,7 @@ library(dplyr)
 library(quanteda)
 library(readtext)
 library(quanteda.textmodels)
+library(quanteda.textstats)
 
 ```
 
@@ -331,6 +332,8 @@ ggplot(me_age_df, aes(x = factor(age), y = AME)) +
 
 
 
+
+
 ### Project 4: Text Analysis and Machine Learning: Presidential Consession Speeches
 
 #### In this project I analysed data from concession speeches given by the losing American presidential candidates subsequent to their losses.  
@@ -339,7 +342,8 @@ ggplot(me_age_df, aes(x = factor(age), y = AME)) +
 #### Naive Bayes with Quanteda
 
 
-```{r}
+``````{r, echo=FALSE, include=FALSE}
+
 speeches <- readtext("/Users/carolinapadrao/Desktop/Concession Speeches/*.txt")
 
 #astrix means take everything
@@ -363,10 +367,8 @@ summary(speeches_corpus)
 
 
 
+```{r, echo=FALSE, include=FALSE}
 
-I want to run predictive models in the future so using quanteda, I can easily transform the corpus from the document level into the paragraph level and keep the doc variables 
-
-```{r}
 speeches_paragraph <- corpus_reshape(speeches_corpus, to = "paragraphs", use_docvars = TRUE) # Can also change to sentences
 summary(speeches_paragraph)
 
@@ -380,15 +382,15 @@ prop.r
 ```
 
 
-```{r}
-speech_tokens <- tokens(speeches_paragraph, remove_punct = TRUE, remove_symbols = TRUE, split_hyphens = TRUE, remove_numbers = TRUE) #turn them into individual words and punctuation
-speech_tokens #As we can see here, we now have a list of words
+```{r, echo=TRUE}
+speech_tokens <- tokens(speeches_paragraph, remove_punct = TRUE, remove_symbols = TRUE, split_hyphens = TRUE, remove_numbers = TRUE) #turn into individual words and punctuation
+speech_tokens # a list of words has been made
 speeches_clean <- tokens_wordstem(speech_tokens) # stem the words getting rid of endings
 speeches_clean <- tokens_remove(speeches_clean, pattern = c("applpaus", "applause")) #misspelling
 speeches_clean <- tokens_select(speeches_clean, c("*st", "*th", "*rd"), selection = "remove") # get rid of special endings like 43rd
 ```
 
-```{r}
+```{r, echo=FALSE, include=FALSE}
 speeches_clean <- dfm(speeches_clean)
 
 speeches_clean <- dfm_remove(speeches_clean,
@@ -402,7 +404,7 @@ speeches_clean
 
 Here I am taking a straight 80/20 split 
 
-```{r}
+```{r, echo=TRUE}
 Concession_dfm_train <- speeches_clean[1:268, ] #80% of total observations
 Concession_dfm_test <- speeches_clean[269:337, ] #20% of total observations
 Concession_train_labels <- speeches_paragraph$Party[1:268]
@@ -425,14 +427,8 @@ actual_class <- dfmat_matched$Party
 predicted_class <- predict(nb_model, newdata = dfmat_matched)
 ```
 
-### Evaluation of model output 
+#### Evaluation of output 
 
-
-top left: true positive
-bottom left: false negative
-
-top right: false negative
-bottom right: true negative
 
 ```{r}
 tab_class <- table(predicted_class, actual_class)
@@ -442,3 +438,31 @@ tab_class
 
 
 
+
+
+### My Graph illustraing how language is used in politics 
+
+
+```{r, echo=TRUE, out.width="100%"}
+
+freq_by_party <- textstat_frequency(speeches_clean, 
+                                     n = 20, 
+                                     groups = speeches_clean$Party)
+
+ggplot(freq_by_party, aes(x = reorder(feature, frequency), 
+                           y = frequency, 
+                           fill = group)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~group, scales = "free_y") +
+  coord_flip() +
+  scale_fill_manual(values = c("D" = "navy", "R" = "#DC143C")) +
+  labs(
+    title = "Most Frequent Words in Concession Speeches",
+    subtitle = "Top 20 words used by Democrats vs Republicans",
+    x = "Word",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+theme(plot.margin = margin(l = 20, r = 10, t = 10, b = 10),  axis.text.y = element_text(size = 9)
+)
+```
